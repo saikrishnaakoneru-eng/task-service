@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Real-Time Task Editor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        h1 { color: #333; }
+        .editor {
+            background: #f4f4f4;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+        }
+        input:focus, textarea:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+        .updates {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .update {
+            padding: 8px;
+            margin: 5px 0;
+            background: white;
+            border-left: 4px solid #4CAF50;
+        }
+        .status {
+            padding: 10px;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .connected {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+<h1>🚀 Real-Time Collaborative Task Editor</h1>
+
+<div id="status" class="status">⚠️ Not Connected</div>
+
+<div class="editor">
+    <h3>Task Editor (Open in 2 browsers to see real-time sync!)</h3>
+
+    <label>Task ID:</label>
+    <input type="number" id="taskId" value="1">
+
+    <label>User Name:</label>
+    <input type="text" id="userId" placeholder="Enter your name" value="User1">
+
+    <label>Title:</label>
+    <input type="text" id="title" placeholder="Type to update title in real-time...">
+
+    <label>Description:</label>
+    <textarea id="description" rows="4" placeholder="Type to update description in real-time..."></textarea>
+
+    <label>Status:</label>
+    <select id="status-select">
+        <option value="PENDING">PENDING</option>
+        <option value="IN_PROGRESS">IN_PROGRESS</option>
+        <option value="COMPLETED">COMPLETED</option>
+    </select>
+</div>
+
+<div class="updates">
+    <h3>📡 Real-Time Updates Feed</h3>
+    <div id="updates-list"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<script>
+    let stompClient = null;
+    const statusEl = document.getElementById('status');
+    const updatesList = document.getElementById('updates-list');
+
+    function connect() {
+        // Connect to WebSocket via SockJS
+        const socket = new SockJS('/ws-tasks');
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function(frame) {
+            statusEl.className = 'status connected';
+            statusEl.innerHTML = '✅ Connected to WebSocket Server';
+
+            // Subscribe to task update broadcasts
+            stompClient.subscribe('/topic/task-updates', function(message) {
+                const update = JSON.parse(message.body);
+                showUpdate(update);
+                applyUpdate(update);
+            });
+        }, function(error) {
+            statusEl.innerHTML = '❌ Connection Failed: ' + error;
+        });
+    }
+
+    function sendUpdate(field, value) {
+        if (!stompClient || !stompClient.connected) return;
+
+        const update = {
+            taskId: parseInt(document.getElementById('taskId').value),
+            field: field,
+            value: value,
+            userId: document.getElementById('userId').value,
+            timestamp: Date.now()
+        };
+
+        stompClient.send('/app/edit-task', {}, JSON.stringify(update));
+    }
+
+    function showUpdate(update) {
+        const div = document.createElement('div');
+        div.className = 'update';
+        const time = new Date(update.timestamp).toLocaleTimeString();
+        div.innerHTML = `<strong>${update.userId}</strong> updated <em>${update.field}</em>: "${update.value}" <small>at ${time}</small>`;
+        updatesList.insertBefore(div, updatesList.firstChild);
+    }
+
+    function applyUpdate(update) {
+        // Update the field if it came from another user
+        const myUserId = document.getElementById('userId').value;
+        if (update.userId !== myUserId) {
+            if (update.field === 'title') {
+                document.getElementById('title').value = update.value;
+            } else if (update.field === 'description') {
+                document.getElementById('description').value = update.value;
+            } else if (update.field === 'status') {
+                document.getElementById('status-select').value = update.value;
+            }
+        }
+    }
+
+    // Listen for changes on input fields
+    document.getElementById('title').addEventListener('input', (e) => {
+        sendUpdate('title', e.target.value);
+    });
+
+    document.getElementById('description').addEventListener('input', (e) => {
+        sendUpdate('description', e.target.value);
+    });
+
+    document.getElementById('status-select').addEventListener('change', (e) => {
+        sendUpdate('status', e.target.value);
+    });
+
+    // Connect when page loads
+    connect();
+</script>
+</body>
+</html>

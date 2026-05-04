@@ -1,0 +1,106 @@
+package com.example.task_service;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+public class TaskServiceTests {
+
+    @Mock
+    private TaskRepository taskRepository;
+
+    @InjectMocks
+    private TaskService taskService;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void testCreateTask_InvalidUser_ThrowsException() {
+        CreateTaskRequest request = new CreateTaskRequest();
+        request.setTitle("Test Task");
+        request.setDescription("Test Description");
+        request.setUserId(9999L);
+
+        Exception exception = assertThrows(Exception.class, () -> {
+            taskService.createTask(request);
+        });
+
+        assertNotNull(exception.getMessage());
+    }
+
+    @Test
+    void testGetUserTasks_ReturnsTaskList() {
+        Long userId = 1L;
+        Task task1 = new Task();
+        task1.setId(1L);
+        task1.setTitle("Task 1");
+        task1.setUserId(userId);
+
+        Task task2 = new Task();
+        task2.setId(2L);
+        task2.setTitle("Task 2");
+        task2.setUserId(userId);
+
+        when(taskRepository.findByUserId(userId)).thenReturn(Arrays.asList(task1, task2));
+
+        List<Task> tasks = taskService.getUserTasks(userId);
+
+        assertNotNull(tasks);
+        assertEquals(2, tasks.size());
+        assertEquals("Task 1", tasks.get(0).getTitle());
+    }
+
+    @Test
+    void testGetUserTasks_EmptyList() {
+        Long userId = 999L;
+
+        when(taskRepository.findByUserId(userId)).thenReturn(Arrays.asList());
+
+        List<Task> tasks = taskService.getUserTasks(userId);
+
+        assertNotNull(tasks);
+        assertEquals(0, tasks.size());
+    }
+
+    @Test
+    void testTaskRepository_FindByUserId() {
+        Long userId = 5L;
+        Task task = new Task();
+        task.setId(10L);
+        task.setUserId(userId);
+        task.setTitle("My Task");
+
+        when(taskRepository.findByUserId(userId)).thenReturn(Arrays.asList(task));
+
+        List<Task> result = taskService.getUserTasks(userId);
+
+        assertEquals(1, result.size());
+        assertEquals(5L, result.get(0).getUserId());
+    }
+
+    @Test
+    void testCreateTask_NullRequest_ThrowsException() {
+        CreateTaskRequest request = new CreateTaskRequest();
+        request.setUserId(null);
+
+        assertThrows(Exception.class, () -> {
+            taskService.createTask(request);
+        });
+    }
+}
