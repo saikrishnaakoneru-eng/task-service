@@ -18,7 +18,7 @@ public class TaskService {
     public com.example.task_service.Task createTask(CreateTaskRequest request) throws Exception {
         try {
             // Call user-service via public IP to verify user exists
-            String userServiceUrl = "http://18.118.209.91:8080/api/users/" + request.getUserId();
+            String userServiceUrl = "http://microservices-alb-77704934.us-east-2.elb.amazonaws.com:8080/api/users/" + request.getUserId();
             ResponseEntity<String> response = restTemplate.getForEntity(userServiceUrl, String.class);
 
             if (response.getStatusCode() == HttpStatus.OK) {
