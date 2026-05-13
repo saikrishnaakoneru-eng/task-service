@@ -22,6 +22,16 @@ public class TaskController {
             return ResponseEntity.status(400).body("Error: " + e.getMessage());
         }
     }
+    @GetMapping("/{userId}")
+    public ResponseEntity<List<Task>> getUserTasks(@PathVariable Long userId) {
+        return ResponseEntity.ok(taskService.getUserTasks(userId));
+    }
+
+    // ADD THIS ↓
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<Task>> getUserTasksByUser(@PathVariable Long userId) {
+        return ResponseEntity.ok(taskService.getUserTasks(userId));
+    }
 
     @GetMapping("/{userId}")
     public ResponseEntity<List<com.example.task_service.Task>> getUserTasks(@PathVariable Long userId) {
