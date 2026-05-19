@@ -7,6 +7,7 @@ import lombok.Data;
 @Table(name = "tasks")
 @Data
 public class Task {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -17,6 +18,6 @@ public class Task {
     private String status;
 
     public Task() {
-        this.status = "TODO";
+        this.status = "PENDING";
     }
 }
